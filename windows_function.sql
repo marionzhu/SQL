@@ -450,5 +450,40 @@ $$) AS ct (Country VARCHAR,
 
 Order by Country ASC;
 
+-- roll up and cube
+-- rollup
+-- Country-level subtotals
+-- Count the gold medals awarded per country and gender.
+-- Generate Country-level gold award counts.
+SELECT
+  Country,
+  Gender,
+  COUNT(*) AS Gold_Awards
+FROM Summer_Medals
+WHERE
+  Year = 2004
+  AND Medal = 'Gold'
+  AND Country IN ('DEN', 'NOR', 'SWE')
+-- Generate Country-level subtotals
+GROUP BY Country, ROLLUP(Gender)
+ORDER BY Country ASC, Gender ASC;
+
+-- CUBE
+-- All group-level subtotals
+-- Count the medals awarded per gender and medal type.
+-- Generate all possible group-level counts (per gender and medal type subtotals and the grand total).
+-- Count the medals per gender and medal type
+SELECT
+  Gender,
+  Medal,
+  COUNT(*) AS Awards
+FROM Summer_Medals
+WHERE
+  Year = 2012
+  AND Country = 'RUS'
+-- Get all possible group-level subtotals
+GROUP BY CUBE(Gender, Medal)
+ORDER BY Gender ASC, Medal ASC;
+
 
 
