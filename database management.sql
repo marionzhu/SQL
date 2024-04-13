@@ -1,4 +1,31 @@
--- table partitioning
+-- DATABASE ROLE AND ACCESS CONTROL
+-- Create a data scientist role
+CREATE ROLE data_scientist;
+
+-- Create a role called marta that has one attribute: the ability to login (LOGIN).
+CREATE ROLE Marta LOGIN;
+
+-- Create a role called admin with the ability to create databases (CREATEDB) and to create roles (CREATEROLE).
+CREATE ROLE admin WITH CREATEDB CREATEROLE;
+
+-- GRANT privileges and ALTER attributes
+-- Grant the data_scientist role update and insert privileges on the long_reviews view.
+GRANT UPDATE, INSERT ON long_reviews TO data_scientist;
+
+-- Alter Marta's role to give her the provided password.
+ALTER ROLE marta WITH PASSWORD 's3cur3p@ssw0rd';
+
+-- Add a user role to a group role
+-- Add Marta to the data scientist group
+GRANT data_scientist TO Marta;
+
+-- Remove Marta from the data scientist group
+REVOKE data_scientist FROM Marta;
+
+
+
+
+-- TABLE PARTITIONING
 -- Create a new table film_descriptions containing 2 fields: film_id, which is of type INT, and long_description, which is of type TEXT.
 -- Occupy the new table with values from the film table.
 -- Drop the field long_description from the film table.
@@ -51,4 +78,3 @@ SELECT film_id, title, release_year FROM film;
 
 -- View film_partitioned
 SELECT * FROM film_partitioned;
-
