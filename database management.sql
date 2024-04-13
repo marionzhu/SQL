@@ -25,6 +25,52 @@ REVOKE data_scientist FROM Marta;
 
 
 
+-- DATABASE VIEW
+-- Query the information schema to get views.
+-- Exclude system views in the results.
+-- Get all non-systems views
+SELECT * FROM INFORMATION_SCHEMA.VIEWS
+WHERE table_schema NOT IN ('pg_catalog', 'information_schema');
+
+-- Create a view for reviews with a score above 9
+CREATE VIEW high_scores AS
+SELECT * FROM reviews
+WHERE score > 9;
+-- Count the number of self-released works in high_scores
+SELECT COUNT(*) FROM high_scores
+INNER JOIN labels ON high_scores.reviewid = labels.reviewid
+WHERE label = 'self-released';
+
+-- Create a view called top_artists_2017 with artist from artist_title.
+-- To only return the highest scoring artists of 2017, join the views top_15_2017 and artist_title on reviewid.
+-- Output top_artists_2017.
+-- Create a view with the top artists in 2017
+CREATE VIEW top_artists_2017 AS
+SELECT artist_title.artist FROM artist_title
+INNER JOIN top_15_2017
+ON artist_title.reviewid = top_15_2017.reviewid;
+-- Output the new view
+SELECT * FROM top_artists_2017;
+
+-- Creating and refreshing a materialized view
+-- Create a materialized view called genre_count that holds the number of reviews for each genre.
+-- Refresh genre_count so that the view is up-to-date.
+-- Create a materialized view called genre_count 
+CREATE MATERIALIZED VIEW genre_count AS
+SELECT genre, COUNT(*) 
+FROM genres
+GROUP BY genre;
+
+INSERT INTO genres
+VALUES (50000, 'classical');
+
+-- Refresh genre_count
+REFRESH MATERIALIZED VIEW genre_count;
+SELECT * FROM genre_count;
+
+
+
+
 
 -- DATABASE SCHEMAS AND NORMALIZATION
 -- Add foreign keys
