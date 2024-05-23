@@ -41,7 +41,7 @@ ORDER BY f.title;
 -- Add it to the rental date.
 SELECT
     f.title,
-	r.rental_date,
+	  r.rental_date,
     f.rental_duration,
     -- Add the rental duration to the rental date
     INTERVAL '1' day * f.rental_duration + r.rental_date AS expected_return_date,
