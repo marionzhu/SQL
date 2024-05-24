@@ -1,3 +1,37 @@
+-- COALESCE AND SELFJOIN
+-- In the fortune500 data, industry contains some missing values. 
+-- Use coalesce() to use the value of sector as the industry when industry is NULL. Then find the most common industry.
+SELECT coalesce(industry, sector, 'Unknown') AS industry2,
+       count(*) 
+  FROM fortune500 
+ GROUP BY industry2
+ ORDER BY count(*) desc  
+ LIMIT 1;
+
+-- You previously joined the company and fortune500 tables to find out which companies are in both tables. 
+-- Now, also include companies from company that are subsidiaries of Fortune 500 companies as well.
+-- To include subsidiaries, you will need to join company to itself to associate a subsidiary with its parent company's information. 
+-- To do this self-join, use two different aliases for company.
+SELECT company_original.name, title, rank
+  -- Start with original company information
+  FROM company AS company_original
+       -- Join to another copy of company with parent
+       -- company information
+	   LEFT JOIN company AS company_parent
+       ON company_original.parent_id = company_parent.id 
+       -- Join to fortune500, only keep rows that match
+       INNER JOIN fortune500 
+       -- Use parent ticker if there is one, 
+       -- otherwise original ticker
+       ON coalesce(company_parent.ticker, 
+                   company_original.ticker) = 
+             fortune500.ticker
+ -- For clarity, order by rank
+ ORDER BY rank; 
+
+
+
+
 -- Summarizing and aggragating numeric data
 -- Division
 -- Compute the average revenue per employee for Fortune 500 companies by sector.
@@ -217,6 +251,6 @@ SELECT measure,
        ROUND(profits_change::numeric,2) AS profits_change,
        ROUND(revenues_change::numeric,2) AS revenues_change
   FROM correlations;
-  
+
 
 
