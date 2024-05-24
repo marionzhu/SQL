@@ -109,6 +109,79 @@ SELECT lower, upper, count(question_count)
  -- Order by lower to put bins in order
  ORDER BY lower;
 
+
+
+ -- CORRELATION
+ -- Correlation between revenues and profit
+SELECT corr(revenues, profits) AS rev_profits,
+	   -- Correlation between revenues and assets
+       corr(revenues, assets) AS rev_assets,
+       -- Correlation between revenues and equity
+       corr(revenues, equity) AS rev_equity 
+  FROM fortune500;
+
+
+
+-- MEAN AND MEDIAN
+-- Compute the mean (avg()) and median assets of Fortune 500 companies by sector.
+SELECT sector,
+       -- Select the mean of assets with the avg function
+       avg(assets) AS mean,
+       -- Select the median
+       percentile_disc(0.5) WITHIN GROUP (ORDER BY assets) AS median
+  FROM fortune500
+ GROUP BY sector
+ ORDER BY mean;
+
+
+
+-- CREATE TEMPORARY TABLES
+-- Find the Fortune 500 companies that have profits in the top 20% for their sector (compared to other Fortune 500 companies).
+-- Code from previous step
+DROP TABLE IF EXISTS profit80;
+
+CREATE TEMP TABLE profit80 AS
+  SELECT sector, 
+         percentile_disc(0.8) WITHIN GROUP (ORDER BY profits) AS pct80
+    FROM fortune500 
+   GROUP BY sector;
+
+SELECT title, profit80.sector, 
+       fortune500.profits, profits/pct80 AS ratio 
+  FROM fortune500 
+       LEFT JOIN profit80
+       ON profit80.sector=fortune500.sector
+ WHERE profits > pct80;
+
+
+
+-- The Stack Overflow data contains daily question counts through 2018-09-25 for all tags, but each tag has a different starting date in the data.
+-- Find out how many questions had each tag on the first date for which data for the tag is available, 
+-- as well as how many questions had the tag on the last day. Also, compute the difference between these two values.
+
+-- To clear table if it already exists
+DROP TABLE IF EXISTS startdates;
+
+CREATE TEMP TABLE startdates AS
+SELECT tag, min(date) AS mindate
+  FROM stackoverflow
+ GROUP BY tag;
  
+-- Select tag (Remember the table name!) and mindate
+SELECT startdates.tag, 
+       mindate, 
+       -- Select question count on the min and max days
+	   so_min.question_count AS min_date_question_count,
+       so_max.question_count AS max_date_question_count,
+       -- Compute the change in question_count (max- min)
+       so_max.question_count - so_min.question_count AS change
+  FROM startdates
+       -- Join startdates to stackoverflow with alias so_min
+       INNER JOIN stackoverflow AS so_min
+          ON startdates.tag = so_min.tag
+         AND startdates.mindate = so_min.date
+       INNER JOIN stackoverflow AS so_max
+          ON startdates.tag = so_max.tag
+         AND so_max.date = '2018-09-25';
 
 
