@@ -114,4 +114,211 @@ FROM
 WHERE 
   -- Use an INTERVAL for the upper bound of the rental_date 
   r.rental_date BETWEEN CAST('2005-05-01' AS DATE) 
-  AND CAST('2005-05-01' AS DATE) + INTERVAL '90 day';
+  AND CAST('2005-05-01' AS DATE) + INTERVAL '90 day'; 
+
+
+
+
+-- date comparisons 
+-- Count the number of Evanston 311 requests created on January 31, 2017 by casting date_created to a date.
+-- Count requests created on January 31, 2017
+SELECT count(*) 
+FROM evanston311
+WHERE date_created::date = '2017-01-31';
+
+-- Count the number of Evanston 311 requests created on February 29, 2016 by using >= and < operators.
+-- Count requests created on February 29, 2016
+SELECT count(*)
+  FROM evanston311 
+ WHERE date_created >= '2016-02-29'::timestamp 
+   AND date_created < '2016-03-01'::timestamp ;
+  
+--Count the number of requests created on March 13, 2017.
+-- Specify the upper bound by adding 1 to the lower bound.
+-- Count requests created on March 13, 2017
+SELECT count(*)
+  FROM evanston311
+ WHERE date_created >= '2017-03-13'::date
+   AND date_created < '2017-03-13'::date+ '1 day'::interval;
+
+
+-- date arithmetic 
+-- Subtract the min date_created from the max
+SELECT max(date_created) - min(date_created)
+  FROM evanston311;
+
+-- How old is the most recent request?
+SELECT now() - max(date_created)
+  FROM evanston311;
+
+-- Add 100 days to the current timestamp
+SELECT now()+'100 days'::interval;
+
+-- Select the current timestamp, 
+-- and the current timestamp + 5 minutes
+SELECT now() + '5 minutes':: interval;
+
+
+
+
+-- Completion time by category
+-- Select the category and the average completion time by category
+SELECT category, 
+       AVG(date_completed - date_created) AS completion_time
+  FROM evanston311
+ group by category
+-- Order the results
+ Order by completion_time desc;
+
+
+
+
+
+-- date part 
+-- Count requests completed by hour
+SELECT date_part('hour', date_completed) AS hour,
+       Count(*)
+  FROM evanston311
+ group by hour
+ order by hour;
+
+
+-- Variation by day of week
+-- Does the time required to complete a request vary by the day of the week on which the request was created?
+-- Select name of the day of the week the request was created 
+SELECT to_char(date_created, 'day') AS day, 
+       -- Select avg time between request creation and completion
+       avg(date_completed - date_created) AS duration
+  FROM evanston311 
+ -- Group by the name of the day of the week and 
+ -- integer value of day of week the request was created
+ GROUP BY day, EXTRACT(dow FROM date_created)
+ -- Order by integer value of the day of the week 
+ -- the request was created
+ ORDER BY EXTRACT(dow FROM date_created);
+
+
+
+-- Using date_trunc(), find the average number of Evanston 311 requests created per day for each month of the data. Ignore days with no requests when taking the average.
+-- Aggregate daily counts by month
+SELECT date_trunc('month', day) AS month,
+       AVG(count)
+  -- Subquery to compute daily counts
+  FROM (SELECT date_trunc('day', date_created) AS day,
+               count(*) AS count
+          FROM evanston311
+         GROUP BY day) AS daily_count
+ GROUP BY month
+ ORDER BY month;
+
+
+
+-- Find missing dates
+-- The generate_series() function can be useful for identifying missing dates.
+SELECT day
+-- 1) Subquery to generate all dates
+-- from min to max date_created
+  FROM (SELECT generate_series(min(date_created),
+                               max(date_created),
+                               '1 day':: interval)::date AS day
+          -- What table is date_created in?
+          FROM evanston311) AS all_dates
+-- 4) Select dates (day from above) that are NOT IN the subquery
+ WHERE day not in  
+       -- 2) Subquery to select all date_created values as dates
+       (SELECT date_created::date
+          FROM evanston311);
+
+
+
+
+-- Custom aggregation periods
+-- Find the median number of Evanston 311 requests per day in each six month period from 2016-01-01 to 2018-06-30. 
+-- Bins from Step 1
+WITH bins AS (
+	 SELECT generate_series('2016-01-01',
+                            '2018-01-01',
+                            '6 months'::interval) AS lower,
+            generate_series('2016-07-01',
+                            '2018-07-01',
+                            '6 months'::interval) AS upper),
+-- Daily counts from Step 2
+     daily_counts AS (
+     SELECT day, count(date_created) AS count
+       FROM (SELECT generate_series('2016-01-01',
+                                    '2018-06-30',
+                                    '1 day'::interval)::date AS day) AS daily_series
+            LEFT JOIN evanston311
+            ON day = date_created::date
+      GROUP BY day)
+-- Select bin bounds 
+SELECT lower, 
+       upper, 
+       -- Compute median of count for each bin
+       percentile_disc(0.5) WITHIN GROUP (ORDER BY count) AS median
+  -- Join bins and daily_counts
+  FROM bins
+       LEFT JOIN daily_counts
+       -- Where the day is between the bin bounds
+       ON day >= lower
+          AND day < upper
+ -- Group by bin bounds
+ GROUP BY lower, upper
+ ORDER BY lower;
+
+
+
+-- Monthly average with missing dates
+-- Find the average number of Evanston 311 requests created per day for each month of the data.
+ -- generate series with all days from 2016-01-01 to 2018-06-30
+WITH all_days AS 
+     (SELECT generate_series('2016-01-01',
+                             '2018-06-30',
+                             '1 day'::interval) AS date),
+     -- Subquery to compute daily counts
+     daily_count AS 
+     (SELECT date_trunc('day', date_created) AS day,
+             count(*) AS count
+        FROM evanston311
+       GROUP BY day)
+-- Aggregate daily counts by month using date_trunc
+SELECT date_trunc('month', date) AS month,
+       -- Use coalesce to replace NULL count values with 0
+       avg(coalesce(count, 0)) AS average
+  FROM all_days
+       LEFT JOIN daily_count
+       -- Joining condition
+       ON all_days.date=daily_count.day
+ GROUP BY month
+ ORDER BY month; 
+
+
+
+
+-- Longest gap
+-- What is the longest time between Evanston 311 requests being submitted?
+-- Compute the gaps
+WITH request_gaps AS (
+        SELECT date_created,
+               -- lead or lag
+               LAG(date_created) OVER (ORDER BY date_created) AS previous,
+               -- compute gap as date_created minus lead or lag
+               date_created - LAG(date_created) OVER (ORDER BY date_created) AS gap
+          FROM evanston311)
+-- Select the row with the maximum gap
+SELECT *
+  FROM request_gaps
+-- Subquery to select maximum gap from request_gaps
+ WHERE gap = (SELECT MAX(gap)
+                FROM request_gaps);
+
+
+
+
+-- Rats!
+-- Requests in category "Rodents- Rats" average over 64 days to resolve. Why?
+
+
+
+
+
