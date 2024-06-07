@@ -31,3 +31,28 @@ ON r.customer_id = c.customer_id
 GROUP BY CUBE(c.country, m.genre); -- For all aggregation levels of country and genre
 
 
+
+-- ROLLUP
+-- Count the total number of customers, the number of customers for each country, and the number of female and male customers for each country
+SELECT country,
+       gender,
+	   COUNT(*)
+FROM customers
+GROUP BY ROLLUP (country, gender)
+ORDER BY country, gender ; -- Order the result by country and gender
+
+-- calculate the average ratings and the number of ratings for each country and genre, as well as an aggregation over all genres for each country and the overall average and total number.
+-- Group by each county and genre with OLAP extension
+SELECT 
+	c.country, 
+	m.genre, 
+	AVG(r.rating) AS avg_rating, 
+	COUNT(*) AS num_rating
+FROM renting AS r
+LEFT JOIN movies AS m
+ON m.movie_id = r.movie_id
+LEFT JOIN customers AS c
+ON r.customer_id = c.customer_id
+GROUP BY ROLLUP(C.country, m.genre)
+ORDER BY c.country, m.genre;
+
