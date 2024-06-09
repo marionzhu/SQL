@@ -66,3 +66,54 @@ WHERE 8< -- Select all movies with an average rating higher than 8
 	WHERE r.movie_id = m.movie_id);
 
 
+
+
+-- QUERRY WITH EXISTS
+-- Make a list of customers who gave at least one rating.
+SELECT *
+FROM customers AS c -- Select all customers with at least one rating
+WHERE exists
+	(SELECT *
+	FROM renting AS r
+	WHERE rating IS NOT NULL 
+	AND r.customer_id = c.customer_id);
+
+-- same question we can write in a nested query
+SELECT *
+FROM customers
+	WHERE customer_id IN
+	(SELECT c.customer_id
+	FROM customers AS c
+	LEFT JOIN renting AS r
+		ON c.customer_id = r.customer_id
+	GROUP BY c.customer_id
+	HAVING count(rating) >=1) 
+
+
+--  report a list of actors who play in comedies and then, the number of actors for each nationality playing in comedies.
+-- Create a list of all actors who play in a Comedy. 
+SELECT *
+FROM actors as a
+WHERE exists
+	(SELECT *
+	 FROM actsin AS ai
+	 LEFT JOIN movies AS m
+	 ON m.movie_id = ai.movie_id
+	 WHERE m.genre = 'Comedy')
+
+
+SELECT a.nationality, count(*) -- Report the nationality and the number of actors for each nationality
+FROM actors AS a
+WHERE EXISTS
+	(SELECT ai.actor_id
+	 FROM actsin AS ai
+	 LEFT JOIN movies AS m
+	 ON m.movie_id = ai.movie_id
+	 WHERE m.genre = 'Comedy'
+	 AND ai.actor_id = a.actor_id)
+GROUP BY a.nationality;
+
+
+
+-- UNION AND INTERSECT
+
