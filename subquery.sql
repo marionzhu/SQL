@@ -32,5 +32,37 @@ WHERE movie_id IN
 
 
 
+-- CORRELATED NESTED QUERIES
+-- A new advertising campaign is going to focus on customers who rented fewer than 5 movies. 
+-- Use a correlated query to extract all customer information for the customers of interest.
+SELECT *
+FROM customers as c
+WHERE 5> 
+	(SELECT count(*)
+	FROM renting as r
+	WHERE r.customer_id = c.customer_id);
+
+-- Report a list of customers with minimum rating smaller than 4.
+SELECT *
+FROM customers as c
+WHERE 4> -- Select all customers with a minimum rating smaller than 4 
+	(SELECT MIN(rating)
+	FROM renting AS r
+	WHERE r.customer_id = c.customer_id);
+
+-- report all movies with more than 5 ratings and all movies with an average rating higher than 8
+SELECT *
+FROM movies as m
+WHERE 5 <  -- Select all movies with more than 5 ratings
+	(SELECT count(rating)
+	FROM renting as r
+	WHERE m.movie_id = r.movie_id);
+
+SELECT *
+FROM movies AS m
+WHERE 8< -- Select all movies with an average rating higher than 8
+	(SELECT AVG(rating)
+	FROM renting AS r
+	WHERE r.movie_id = m.movie_id);
 
 
