@@ -115,5 +115,45 @@ GROUP BY a.nationality;
 
 
 
--- UNION AND INTERSECT
 
+-- UNION AND INTERSECT
+-- Identify actors who are not from the USA and actors who were born after 1990.
+SELECT name, 
+       nationality, 
+       year_of_birth
+FROM actors
+WHERE nationality <> 'USA'
+union-- Select all actors who are not from the USA and all actors who are born after 1990
+SELECT name, 
+       nationality, 
+       year_of_birth
+FROM actors
+WHERE year_of_birth > 1990;
+
+-- Select all actors who are not from the USA and who are also born after 1990.
+SELECT name, 
+       nationality, 
+       year_of_birth
+FROM actors
+WHERE nationality <> 'USA'
+intersect -- Select all actors who are not from the USA and who are also born after 1990
+SELECT name, 
+       nationality, 
+       year_of_birth
+FROM actors
+WHERE year_of_birth > 1990;
+
+
+
+-- Make a list of all movies that are in the drama genre and have an average rating higher than 9.
+SELECT *
+FROM movies
+WHERE movie_id IN -- Select all movies of genre drama with average rating higher than 9
+   (SELECT movie_id
+    FROM movies
+    WHERE genre = 'Drama'
+    INTERSECT
+    SELECT movie_id
+    FROM renting
+    GROUP BY movie_id
+    HAVING AVG(rating)>9);
