@@ -22,8 +22,15 @@ where extract(year from bv.ORDER_DATE) = 2024
 
 select count(distinct case when bv2.TRANSACTION_ID is not null then bv1.TRANSACTION_ID end) / count(distinct bv1.TRANSACTION_ID)
 from business_value as bv1 
-leftjoin business_value as bv2 
+left join business_value as bv2 
     on bv1.USER_ID = bv2.USER_ID
 where datediff(bv1.ORDER_DATE, bv2.ORDER_DATE) between 1 and  365 
     and year(bv1.ORDER_DATE) = 2023
     and year(bv2.ORDER_DATE) >= 2023
+
+select post, round(avg(TIMESTAMPDIFF(minute, first_clockin,last_clockin)/60),3) as work_hours
+from attendent_tb as a
+join staff_tb as s
+    on a.staff_id = s.staff_id
+group by post
+order by work_hours desc
