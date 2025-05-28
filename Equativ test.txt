@@ -1,0 +1,149 @@
+-- ##### GENERAL ADVICE #####
+-- All Mapping Table Ids are unique.
+-- To filter on a date, the format is 'yyyy-MM-dd'
+-- To see the columns of a table, click on the table name in the left pane
+-- To place the exact name of a table, hover the table, click on the 3 dots > "Place name in SQL"
+-- To use text, use single quotes ''
+-- You can run your queries to test them and get the result.
+
+-- #####################################################
+-- #####################################################
+
+
+-- #### QUESTION 1 ####
+-- Get the total revenue (column TOTAL_PAID_PRICE_TRUE_COUNT) generated per type of Network (Use the whole dataset) 
+
+select NETWORK_TYPE,
+    round(sum(TOTAL_PAID_PRICE_TRUE_COUNT)) as total_revenue
+from MAPPING_NETWORK as m 
+left join DAY_CLICK_AND_VIEW_RTB as d 
+    on m.NETWORK_ID = d.NETWORK_ID
+group by 1;
+
+-- Answer is as following : 
+-- Direct	118343
+-- Aggregator	110416
+-- Premium Sales House	285843
+
+
+
+
+-- #### QUESTION 2 ####
+-- How many Partners have NOT spent any cent on the Site Buscape on the 15th of February 2019? 
+-- HINT : Use SITE_NAME from MAPPING_SITE
+
+with spent_partners as (
+    select distinct PARTNER_ID
+    from DAY_CLICK_AND_VIEW_RTB as d
+    join MAPPING_SITE as m 
+        on d.SITE_ID = m.SITE_ID
+    where DAY = '2019-02-15'
+        and m.SITE_NAME = 'Buscape'
+        and TOTAL_PAID_PRICE_TRUE_COUNT >0
+)
+
+select count(*) as PARTNERS_WITH_NO_SPENDING
+from MAPPING_PARTNER 
+where PARTNER_ID not in (
+    select PARTNER_ID from spent_partners
+)
+
+-- Answer : 12 partners have NOT spent any cent on the Site Buscape on the 15th of February 2019
+
+
+
+
+
+-- #### QUESTION 3 ####
+-- What's the eCPM (effective Cost Per Mille) for the Partner Google on Native ads for each Day? 
+-- HINT 1 : The type of ads (Native / Video / Banner) is given by the table MAPPING_IMPRESSION_TYPE 
+-- HINT 2 : eCPM = Revenue / Impressions * 1000
+
+select DAY, 
+    round(sum(TOTAL_PAID_PRICE_TRUE_COUNT)/sum(IMPRESSIONS_TRUE_COUNT)*1000,2) as eCPM
+from DAY_CLICK_AND_VIEW_RTB as d
+join MAPPING_PARTNER as m
+    on d.PARTNER_ID = m.PARTNER_ID
+join MAPPING_IMPRESSION_TYPE as mi
+    on mi.IMPRESSION_TYPE = d.IMPRESSION_TYPE
+where PARTNER_NAME = 'Google'
+    and IMPRESSION_NAME = 'Native'
+group by 1
+order by 1;
+
+-- The answer is a table, we are not going to put it here.
+
+
+
+
+
+-- #### QUESTION 4 ####
+-- What are the Top 10 Skyblog URLs (Referrer) in terms of number of impressions on the 10th of Feb 2019?
+-- HINT : Skyblog URLs are ending with skyrock.com or skyrock.mobi
+
+select REFERRER,
+    sum(IMPRESSIONS_TRUE_COUNT) as TOTAL_IMPRESSIONS
+from DAY_CLICK_AND_VIEW_RTB
+where DAY = '2019-02-10'
+    and (REFERRER like '%skyrock.com'
+        or REFERRER like '%skyrock.mobi')
+group by 1
+order by sum(IMPRESSIONS_TRUE_COUNT) desc
+limit 10;
+
+-- Answer : The top 10 Skyblog URLs are as following : www.skyrock.mobi
+-- sabrina-lablondasse.skyrock.mobi
+-- delphin040.skyrock.mobi
+-- www.skyrock.com
+-- emmacourtois.skyrock.com
+-- odette103.skyrock.mobi
+-- gargouillette69.skyrock.mobi
+-- revenger79.skyrock.mobi
+-- lovemavie230571.skyrock.mobi
+-- abiancavan.skyrock.mobi
+
+
+
+
+
+
+-- #### QUESTION 5 ####
+-- What net revenue have we made on the 5th of February 2019? 
+-- HINT : Net revenue is given by TOTAL_PAID_PRICE_TRUE_COUNT * SMART_REVSHARE
+
+select round(sum(TOTAL_PAID_PRICE_TRUE_COUNT * SMART_REVSHARE)) as revenue_net
+from DAY_CLICK_AND_VIEW_RTB as d
+left join MAPPING_NETWORK as m
+    on d.NETWORK_ID = m.NETWORK_ID
+where DAY = '2019-02-05';
+
+-- Answer : The net revenue is 5273 on the 5th of February 2019
+
+
+
+
+
+
+-- #### QUESTION 6 ####
+-- What's the maximum number of Sites on which a Partner has spent money and who is/are this/these Partner(s)?
+-- HINT: Display only the Partner(s) reaching this max number
+
+select PARTNER_NAME, 
+    count(distinct SITE_ID) as site_number
+from DAY_CLICK_AND_VIEW_RTB as d
+left join MAPPING_PARTNER as m
+    on d.PARTNER_ID = m.PARTNER_ID
+where TOTAL_PAID_PRICE_TRUE_COUNT >0
+group by 1
+order by count(distinct SITE_ID) desc
+limit 1;
+
+-- Answer : The partner is LiveRamp and the max number is 17766
+
+
+
+
+
+
+
+
